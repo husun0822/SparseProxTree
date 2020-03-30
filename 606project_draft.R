@@ -11,7 +11,7 @@ library(ggplot2)
 # x1: normal distribution
 # x2: random noise 
 set.seed(1234)
-n = 1000
+n = 200
 mu0 = rnorm(1, 0, 1)
 mu1 = rnorm(1, 1, 1)
 x1 = c(rnorm(n/2, mu0, 1), rnorm(n/2, mu1, 1))
@@ -30,8 +30,8 @@ x_marginal0 = apply(xnew, 1, function(x) dnorm(x, mu0, 1))
 x_marginal1 = apply(xnew, 1, function(x) dnorm(x, mu1, 1))
 x_marginal = x_marginal1*0.5 + x_marginal0*0.5
 conditional_1 = x_marginal1*0.5/x_marginal
-bayes_error = sum(x_marginal*(conditional_1*(conditional_1<0.5) + (1-conditional_1)*(conditional_1>0.5) ))/sum(x_marginal)
-bayes_error 
+bayes_error1 = sum(x_marginal*(conditional_1*(conditional_1<0.5) + (1-conditional_1)*(conditional_1>0.5) ))/sum(x_marginal)
+bayes_error1 
 
 
 # distance matrix p*n*n
@@ -61,18 +61,55 @@ distance_cal = function(xdata, p, n, t){
   return (dist)
 }
 
-dist_scenario1 = distance_cal(simu_data[, 1:2], p = 2, n , t = 0)
+dist_scenario = distance_cal(simu_data[, 1:2], p = 2, n , t = 0)
 dim(dist_scenario1[1,,])
 # save and load the dataset
-save(simu_data, bayes_error, distance_cal, dist_scenario1, file = 'treeproject.Rdata')
+output1 = list(dist_scenario, simu_data$y, simu_data)
+#save(simu_data, bayes_error, distance_cal, dist_scenario1, file = 'treeproject.Rdata')
 
-# scenario2 -----------------------------------------------
+
+# scenario2 (consider heteroskedsity inside same group) -----------------------------------------------
+# sample size: 1000 with 2 features
+# y: binary 
+# x1: normal distribution
+# x2: random noise 
+n = 200
+mu0 = rnorm(1, 0, 1)
+mu1 = rnorm(1, 1, 1)
+mu2 = rnorm(1, 5, 1)
+x1 = c(rnorm(n/4, mu0, 1), rnorm(n/4, mu2, 1), rnorm(n/2, mu1, 1))
+x2 = runif(n)
+y = c(rep(0, n/2), rep(1, n/2))
+simu_data = data.frame(x1 = x1,  x2 = x2, y = y)
+
+ggplot(simu_data)+
+  geom_point(aes(x = x1, y = x2, color = factor(y)))+
+  labs(color = 'type')
+
+# bayes error rate p(misclassified) = p(x)p(y neq c(x))dx 
+# assume p(y=0) = p(y=1) balanced dataset expand.grid 
+# xnew = t(seq(-3,3,0.01))
+xnew = t(simu_data[,1])
+x_marginal0 = apply(xnew, 1, function(x) dnorm(x, mu0, 1)*(dnorm(x, mu0, 1)>dnorm(x, mu2,1)) + dnorm(x, mu2,1)*(dnorm(x, mu0, 1)<dnorm(x, mu2,1)))
+x_marginal1 = apply(xnew, 1, function(x) dnorm(x, mu1, 1))
+x_marginal = x_marginal1*0.5 + x_marginal0*0.5
+conditional_1 = x_marginal1*0.5/x_marginal
+bayes_error2 = sum(x_marginal*(conditional_1*(conditional_1<0.5) + (1-conditional_1)*(conditional_1>0.5) ))/sum(x_marginal)
+bayes_error2 
+
+dist_scenario = distance_cal(simu_data[, 1:2], p = 2, n , t = 0)
+dim(dist_scenario1[1,,])
+# save and load the dataset
+output2 = list(dist_scenario, simu_data$y, simu_data)
+
+
+# scenario3 -----------------------------------------------
 # sample size: 100 with 10 features
 # y: binary 
 # x1 - x4: random noise 
 # x5 - x10: normal distribution, weights: dirichilet distribution
 set.seed(1234)
-n = 100
+n = 200
 x1 = runif(n)
 x2 = runif(n)
 x3 = runif(n)
@@ -96,7 +133,8 @@ ggplot(simu_data)+
 # p(x|y=0) = p(x|w1*x1+...+w10*x10 > 0.5) = p(x1, ..., x10 | z) = p(x1|z)*...p(x10|z)  z also follow normal distribution 
 # e.g. p(x = 0 |x+r < 0.5) = p(x=0, r< 0.5)/p(z<0.5)  
 # 
-xnew = expand.grid(x1=seq(-1,1,0.5), x2=seq(-1,1,0.5), x3=seq(-1,1,0.5), x4=seq(-1,1,0.5), x5=seq(-1,1,0.5), x6=seq(-1,1,0.5))
+#xnew = expand.grid(x1=seq(-1,1,0.5), x2=seq(-1,1,0.5), x3=seq(-1,1,0.5), x4=seq(-1,1,0.5), x5=seq(-1,1,0.5), x6=seq(-1,1,0.5))
+xnew = simu_data[, 5:10]
 mean.y = sum(mu0*feature_weight)
 var.y = sum(feature_weight^2)
 densi0 = function(x){
@@ -121,14 +159,162 @@ x_marginal0 = apply(xnew, 1, densi0)
 x_marginal1 = apply(xnew, 1, densi1)
 x_marginal = x_marginal1*0.5 + x_marginal0*0.5
 conditional_1 = x_marginal1*0.5/x_marginal
-bayes_error = sum(x_marginal*(conditional_1*(conditional_1<0.5) + (1-conditional_1)*(conditional_1>0.5) ))/sum(x_marginal)
-bayes_error 
+bayes_error3 = sum(x_marginal*(conditional_1*(conditional_1<0.5) + (1-conditional_1)*(conditional_1>0.5) ))/sum(x_marginal)
+bayes_error3 
 
 dist_scenario = distance_cal(simu_data[, 1:10], p = 10, n , t = 0)
 dim(dist_scenario[1,,])
 # save and load the dataset
-output = list(dist_scenario, simu_data$y)
-save(bayes_error, output, file = 'treeproject.Rdata')
+output3 = list(dist_scenario, simu_data$y, simu_data)
+
+
+
+
+# scenario4 -----------------------------------------------
+# sample size: 100 with 10 features
+# y: binary 
+# x1 - x2: random noise (uniform)
+# x3: random noise (log-normal)
+# x4: heavy tail distribution: log-normal
+# x5 - x10: normal distribution, 
+# weights: dirichilet distribution
+set.seed(123)
+n = 200
+x1 = runif(n)
+x2 = runif(n)
+simu_data = data.frame(x1 = x1, x2 = x2)
+mu0 = rnorm(8, 0, 1)
+feature_weight = MCMCpack::rdirichlet(1,rep(1, 7))
+for (i in 1:8){
+  if (i<3){
+    simu_data[,i+2] = rlnorm(n, mu0[i], 1)
+  }
+  else{
+    simu_data[,i+2] = rnorm(n, mu0[i], 1) 
+  }
+}
+y_values = as.matrix(simu_data[,4:10], n, 7)%*%t(feature_weight)
+threshold = median(y_values)
+simu_data$y = (y_values > threshold)*1
+
+ggplot(simu_data)+
+  geom_point(aes(x = x1, y = V4, color = factor(y)))+
+  labs(color = 'type')
+
+
+# bayes error rate p(misclassified) = p(x)p(y neq c(x))dx 
+# assume p(y=0) = p(y=1) balanced dataset expand.grid
+# p(x|y=0) = p(x|w1*x1+...+w10*x10 > 0.5) = p(x1, ..., x10 | z) = p(x1|z)*...p(x10|z)  z also follow normal distribution 
+# e.g. p(x = 0 |x+r < 0.5) = p(x=0, r< 0.5)/p(z<0.5)  
+# z: t-dist+normal r: normal + t-dist
+xnew = simu_data[, 4:10]
+# emprical distribution for z: analytically F(x) = F(x+y) = F(y<z-x)f(x)dx where x is normal, y is t distribution 
+# sort y_values asce, keep 2 digit, calculate probability observing such number in the sample 
+# should use expand.grid data points instead of y from dataset
+m = 10^5
+empirical_values = data.frame(x1=rep(0, m))
+for (i in 1:8){
+  if (i==1){
+    empirical_values[,i] = rlnorm(m, mu0[i], 1)
+  }
+  else{
+    empirical_values[,i] = rnorm(m, mu0[i], 1) 
+  }
+}
+empirical_values = rowSums(empirical_values)
+mean.y = sum(mu0[3:8]*feature_weight[2:7])
+var.y = sum(feature_weight[2:7]^2)
+
+densi0 = function(x){
+  x_marginal0 = 1
+  for (i in 1:7){
+    if (i == 1){
+      tmp_x_marginal0 = dlnorm(x[i], df0)* pnorm(threshold-x[i], mean.y, sqrt(var.y))/(length(which(empirical_values < threshold))/n)
+    }
+    else{
+      tmp_x_marginal0 = dnorm(x[i], mu0[i-1], 1)* (length(which(empirical_values-x[i] < threshold))/n)/(length(which(empirical_values < threshold))/n)
+    }
+    x_marginal0 = x_marginal0*tmp_x_marginal0 
+  }
+  return(x_marginal0)
+}
+
+densi1 = function(x){
+  x_marginal0 = 1
+  for (i in 1:7){
+    if (i == 1){
+      tmp_x_marginal0 = dlnorm(x[i], df0)* (1-pnorm(threshold-x[i], mean.y, sqrt(var.y)))/(length(which(empirical_values > threshold))/n)
+    }
+    else{
+      tmp_x_marginal0 = dnorm(x[i], mu0[i-1], 1)* (length(which(empirical_values-x[i] > threshold))/n)/(length(which(empirical_values > threshold))/n)
+    }
+    x_marginal0 = x_marginal0*tmp_x_marginal0 
+  }
+  return(x_marginal0)
+}
+x_marginal0 = apply(xnew, 1, densi0)
+x_marginal1 = apply(xnew, 1, densi1)
+x_marginal = x_marginal1*0.5 + x_marginal0*0.5
+conditional_1 = x_marginal1*0.5/x_marginal
+bayes_error4 = sum(x_marginal*(conditional_1*(conditional_1<0.5) + (1-conditional_1)*(conditional_1>0.5) ))/sum(x_marginal)
+bayes_error4 
+
+# without standizarion
+dist_scenario = distance_cal(simu_data[, 1:10], p = 10, n , t = 0)
+dim(dist_scenario[1,,])
+# save and load the dataset
+output4 = list(dist_scenario, simu_data$y, simu_data)
+
+# with standizarion (train , test split!!!)
+index = sample(1:200, 30)
+train = simu_data[-index, ]
+test = simu_data[index, ]
+mean_train = colMeans(train[,-11])
+std_train = sqrt(diag(var(train[,-11])))
+train_x = scale(train[,-11], center = mean_train, std_train)
+all_x = scale(simu_data[,-11], center = mean_train, std_train)
+dist_scenario_train = distance_cal(train_x, p = 10, n-30 , t = 0)
+dist_scenario_all = distance_cal(all_x, p = 10, n , t = 0)
+# save and load the dataset
+output4_sd = list(dist_scenario_train, train$y, dist_scenario_all, train, test)
+save(bayes_error1, output1, bayes_error2, output2, bayes_error3, output3, 
+     bayes_error4, output4, output4_sd, file = 'treeproject.Rdata')
+
+
+
+
+
+
+
+# above ---------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
