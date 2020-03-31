@@ -158,9 +158,14 @@ node_split = function(data,spar_prox,lr=0.01,epsilon=1e-4){
     # now we update the weights using soft-thresholding
     # the first thing is to calculate a for each feature
     a = NULL
+    cluster0 = intersect(which(dist_mat[,medoid_0]<dist_mat[,medoid_1]),ind)
+    cluster1 = intersect(which(dist_mat[,medoid_0]>=dist_mat[,medoid_1]),ind)
+    cluster_correct = c(intersect(cluster0,y0),intersect(cluster1,y1))
+    
     for (j in 1:p){
       delta_d = data$dist_scenario[j,,medoid_0] - data$dist_scenario[j,,medoid_1]
       delta_y = ifelse(data$y==1,1,-1)
+      delta_y[!cluster_correct] = 0
       a = c(a,crossprod(delta_d[ind],delta_y[ind]))
     }
     
@@ -256,13 +261,13 @@ node_create = function(parent, data, spar_prox, lr=0.01,epsilon=1e-4){
 #' @param epsilon: convergence criterion for weight estimator
 #' @param depth: maximum depth of the sparse proximity tree
 
-build_tree = function(data,lr=0.01,epsilon=1e-4, depth=3, train_ind = NULL){
+build_tree = function(data,iter = 100, lr=0.01,epsilon=1e-4, depth=3, train_ind = NULL){
   N = dim(data$dist_scenario)[2]
   p = dim(data$dist_scenario)[1]
   if (is.null(train_ind)){
-    spar_prox = create_dobj(data = data, iter = 100, s = sqrt(p), index = 1:N, layer = 0, converge = 0)
+    spar_prox = create_dobj(data = data, iter = iter, s = sqrt(p), index = 1:N, layer = 0, converge = 0)
   }else{
-    spar_prox = create_dobj(data = data, iter = 100, s = sqrt(p), index = train_ind, layer = 0, converge = 0)
+    spar_prox = create_dobj(data = data, iter = iter, s = sqrt(p), index = train_ind, layer = 0, converge = 0)
   }
   
   tree = Node$new("Sparse Proximity Tree")
@@ -315,7 +320,7 @@ tree_test = function(data,tree,feature,dist_func = NULL){
 # train test split
 input_data = output1
 data = list(dist_scenario = input_data[[1]], y = input_data[[2]])
-tree = build_tree(data = data,depth = 3,train_ind = train_ind)
+tree = build_tree(data = data,depth = 3,train_ind = train_ind,iter = 99)
 plot(tree)
 
 # Function: tree_eval
