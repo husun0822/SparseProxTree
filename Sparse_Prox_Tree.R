@@ -92,68 +92,107 @@ node_split = function(data,spar_prox,lr=0.01,epsilon=1e-4){
   w = spar_prox$w # feature weight parameter
   s = spar_prox$s # tuning parameter
   p = spar_prox$p # number of features
+  n0 = length(y0)
+  n1 = length(y1)
   
-  iter = spar_prox$iter # number of iterations
+  #iter = spar_prox$iter # number of iterations
   iter_counter = 1
   
   converge = spar_prox$converge # the convergence status from the previous node
   exitflag = F
+  
+  m0 = NULL
+  m1 = NULL
   
   while(iter_counter<=iter & exitflag == F){
     # initialize the medoid for class 0 and class 1
     dist_mat = dist_cal(weight = w, dist_data = data$dist_scenario) # distance matrix of all samples
     
     
-    if (length(y0)==1){
-      medoid_0 = y0
-    }else{
-      dist0 = dist_mat[y0,y0]
-      r0 = rowSums(dist0)
-      v0 = colSums(apply(dist0, 2, function(x) x/r0))
-      medoid_0 = min(y0[which(v0==min(v0))]) # initial medoid for cluster 0
-    }
+    # if (length(y0)==1){
+    #   medoid_0 = y0
+    # }else{
+    #   dist0 = dist_mat[y0,y0]
+    #   r0 = rowSums(dist0)
+    #   v0 = colSums(apply(dist0, 2, function(x) x/r0))
+    #   medoid_0 = min(y0[which(v0==min(v0))]) # initial medoid for cluster 0
+    #  }
+    # 
+    #  if (length(y1)==1){
+    #    medoid_1 = y1
+    #  }else{
+    #    dist1 = as.matrix(dist_mat[y1,y1])
+    #    r1 = rowSums(dist1)
+    #    v1 = colSums(apply(dist1, 2, function(x) x/r1))
+    #    medoid_1 = min(y1[which(v1==min(v1))]) # initial medoid for cluster 1
+    #  }
+    # 
+    #  # now we are going to start the internal loop of finding the best medoid under w
+    #  for (i in 1:iter){
+    #    # assign points to two medoids
+    #    cluster0 = intersect(which(dist_mat[,medoid_0]<dist_mat[,medoid_1]),ind)
+    #    #cluster1 = intersect(which(dist_mat[,medoid_0]>=dist_mat[,medoid_1]),ind)
+    # 
+    #    # update the medoid
+    #    clust_y0 = intersect(cluster0,y0)
+    #    clust_y0_1 = as.vector(intersect(cluster0,y1)) # the wrongly classified points
+    # 
+    #    if (length(clust_y0)==1){
+    #      new_medoid_0 = medoid_0
+    #   }else{
+    #      if (length(clust_y0_1)==0){
+    #        dist_sum0 = rowSums(dist_mat[clust_y0,clust_y0])
+    #      }else{
+    #        #dist_sum0 = rowSums(dist_mat[clust_y0,clust_y0]) - rowSums(matrix(dist_mat[clust_y0,clust_y0_1],nrow = length(clust_y0)))
+    #        dist_sum0 = rowSums(dist_mat[clust_y0,clust_y0])
+    #      }
+    #      new_medoid_0 = min(clust_y0[which(dist_sum0==min(dist_sum0))])
+    #    }
+    # 
+    # 
+    #    cluster1 = intersect(which(dist_mat[,new_medoid_0]>=dist_mat[,medoid_1]),ind)
+    #    clust_y1 = intersect(cluster1,y1)
+    #    clust_y1_0 = as.vector(intersect(cluster1,y0)) # the wrongly classified points
+    # 
+    #    if (length(clust_y1)==1){
+    #      new_medoid_1 = medoid_1
+    #    }else{
+    #      if (length(clust_y1_0)==0){
+    #        dist_sum1 = rowSums(dist_mat[clust_y1,clust_y1])
+    #      }else{
+    #        #dist_sum1 = rowSums(dist_mat[clust_y1,clust_y1]) - rowSums(matrix(dist_mat[clust_y1,clust_y1_0],nrow = length(clust_y1)))
+    #        dist_sum1 = rowSums(dist_mat[clust_y1,clust_y1])
+    #      }
+    #      new_medoid_1 = min(clust_y1[which(dist_sum1==min(dist_sum1))])
+    #    }
+    # 
+    # 
+    #    if (medoid_0==new_medoid_0 & medoid_1==new_medoid_1){
+    #      break
+    #    }else{
+    #      medoid_0 = new_medoid_0
+    #      medoid_1 = new_medoid_1
+    # }
+    # }
     
-    if (length(y1)==1){
-      medoid_1 = y1
-    }else{
-      dist1 = dist_mat[y1,y1]
-      r1 = rowSums(dist1)
-      v1 = colSums(apply(dist1, 2, function(x) x/r1))
-      medoid_1 = min(y1[which(v1==min(v1))]) # initial medoid for cluster 1
-    }
+    # search for the best medoid 0 and 1
     
-    # now we are going to start the internal loop of finding the best medoid under w
-    for (i in 1:iter){
-      # assign points to two medoids
-      cluster0 = intersect(which(dist_mat[,medoid_0]<dist_mat[,medoid_1]),ind)
-      cluster1 = intersect(which(dist_mat[,medoid_0]>=dist_mat[,medoid_1]),ind)
-      
-      # update the medoid
-      clust_y0 = intersect(cluster0,y0)
-      if (length(clust_y0)==1){
-        new_medoid_0 = medoid_0
-      }else{
-        dist_sum0 = rowSums(dist_mat[clust_y0,clust_y0])
-        new_medoid_0 = min(clust_y0[which(dist_sum0==min(dist_sum0))])
-      }
-      
-      
-      clust_y1 = intersect(cluster1,y1)
-      if (length(clust_y1)==1){
-        new_medoid_1 = medoid_1
-      }else{
-        dist_sum1 = rowSums(dist_mat[clust_y1,clust_y1])
-        new_medoid_1 = min(clust_y1[which(dist_sum1==min(dist_sum1))])
-      }
-      
-      
-      if (medoid_0==new_medoid_0 & medoid_1==new_medoid_1){
-        break
-      }else{
-        medoid_0 = new_medoid_0
-        medoid_1 = new_medoid_1
-      }
-    }
+     if (length(y0)==1){
+       medoid_0 = y0
+     }else{
+       dist00 = rowSums(as.matrix(dist_mat[y0,y0]))/n0 
+       #- rowSums(as.matrix(dist_mat[y0,y1]))/n1
+       medoid_0 = y0[min(which(dist00==min(dist00)))]
+     }
+     
+     if (length(y1)==1){
+       medoid_1 = y1
+     }else{
+       dist11 = rowSums(as.matrix(dist_mat[y1,y1]))/n1 
+       #- rowSums(as.matrix(dist_mat[y1,y0]))/n0
+       medoid_1 = y1[min(which(dist11==min(dist11)))]
+     }
+    
     
     # now we update the weights using soft-thresholding
     # the first thing is to calculate a for each feature
@@ -164,7 +203,7 @@ node_split = function(data,spar_prox,lr=0.01,epsilon=1e-4){
     
     for (j in 1:p){
       delta_d = data$dist_scenario[j,,medoid_0] - data$dist_scenario[j,,medoid_1]
-      delta_y = ifelse(data$y==1,1,-1)
+      delta_y = ifelse(data$y==1,1/n1,-1/n0)
       delta_y[!cluster_correct] = 0
       a = c(a,crossprod(delta_d[ind],delta_y[ind]))
     }
@@ -196,6 +235,8 @@ node_split = function(data,spar_prox,lr=0.01,epsilon=1e-4){
       }
     }
     iter_counter = iter_counter + 1
+    m0 = c(m0,medoid_0)
+    m1 = c(m1,medoid_1)
   }
   
   # now we shall create two new spar_prox objects and also return the medoid and weight information
@@ -203,7 +244,7 @@ node_split = function(data,spar_prox,lr=0.01,epsilon=1e-4){
   cluster0 = intersect(which(dist_mat[,medoid_0]<dist_mat[,medoid_1]),ind)
   cluster1 = intersect(which(dist_mat[,medoid_0]>=dist_mat[,medoid_1]),ind)
   
-  new_converge = ifelse(converge!=2,0,2)
+  new_converge = ifelse(converge!=2 & iter_counter<iter,0,2)
   current_layer = spar_prox$layer
   node0 = create_dobj(data = data,iter = iter,s = s,index = cluster0, layer = current_layer+1,converge = new_converge)
   node1 = create_dobj(data = data,iter = iter,s = s,index = cluster1, layer = current_layer+1,converge = new_converge)
@@ -221,32 +262,35 @@ node_create = function(parent, data, spar_prox, lr=0.01,epsilon=1e-4){
   # check if the spar_prox object is pure
   y = data$y
   ind = spar_prox$index
+  layer = spar_prox$layer
   
   if (length(unique(y[ind])) == 1){
-    child = parent$AddChild(paste("class",unique(y[ind]))) # create a child node if the node is pure
-    
+    #child = parent$AddChild(paste("Class",unique(y[ind]))) # create a child node if the node is pure
     # if pure, write the node information into the leaf node features
-    child$class0_count = length(which(y[ind] == 0)) 
-    child$class1_count = length(which(y[ind] == 1))
-    child$obs_count = child$class0_count + child$class1_count
-    child$Gini_index = 1 - ((child$class0_count)^2 + (child$class1_count)^2)/(child$obs_count)^2 
+    #child$class0_count = length(which(y[ind] == 0)) 
+    #child$class1_count = length(which(y[ind] == 1))
+    #child$obs_count = child$class0_count + child$class1_count
+    #child$Gini_index = 1 - ((child$class0_count)^2 + (child$class1_count)^2)/(child$obs_count)^2 
     parent$layer = spar_prox$layer
-    child$layer = spar_prox$layer+1
-    child$converge = 0
+    #child$layer = spar_prox$layer+1
+    #child$converge = 0
     parent$converge = spar_prox$converge
     parent$majority = ifelse(length(which(y[ind] == 0))>length(which(y[ind] == 1)),0,1)
-    
+    parent$class0_count = length(which(y[ind] == 0)) 
+    parent$class1_count = length(which(y[ind] == 1))
   }else{
     # if not pure, continue on splitting
     result = node_split(data = data, spar_prox = spar_prox, lr = lr, epsilon = epsilon)
     
     # write node0 and node 1 into child node
-    child0 = parent$AddChild(result$node_info$medoid_0)
-    child1 = parent$AddChild(result$node_info$medoid_1)
+    child0 = parent$AddChild(paste("#",result$node_info$medoid_0))
+    child1 = parent$AddChild(paste("#",result$node_info$medoid_1))
     parent$weight = result$node_info$w
     parent$majority = ifelse(length(which(y[ind] == 0))>length(which(y[ind] == 1)),0,1)
     parent$layer = spar_prox$layer
     parent$converge = result$node0$converge
+    parent$class0_count = length(which(y[ind] == 0)) 
+    parent$class1_count = length(which(y[ind] == 1))
       
     node_create(parent = child0, data = data, spar_prox = result$node0, lr = lr, epsilon =  epsilon)
     node_create(parent = child1, data = data, spar_prox = result$node1, lr = lr, epsilon =  epsilon)
@@ -261,9 +305,11 @@ node_create = function(parent, data, spar_prox, lr=0.01,epsilon=1e-4){
 #' @param epsilon: convergence criterion for weight estimator
 #' @param depth: maximum depth of the sparse proximity tree
 
-build_tree = function(data,iter = 100, lr=0.01,epsilon=1e-4, depth=3, train_ind = NULL){
+build_tree = function(data, iter = 100, lr=0.01, epsilon=1e-4, depth=3, train_ind = NULL){
   N = dim(data$dist_scenario)[2]
   p = dim(data$dist_scenario)[1]
+  
+  
   if (is.null(train_ind)){
     spar_prox = create_dobj(data = data, iter = iter, s = sqrt(p), index = 1:N, layer = 0, converge = 0)
   }else{
@@ -320,8 +366,18 @@ tree_test = function(data,tree,feature,dist_func = NULL){
 # train test split
 input_data = output1
 data = list(dist_scenario = input_data[[1]], y = input_data[[2]])
-tree = build_tree(data = data,depth = 3,train_ind = train_ind,iter = 99)
-plot(tree)
+tree1 = build_tree(data = data,depth = 3,iter = 100)
+print(tree1,"converge")
+
+input_data = output2
+data = list(dist_scenario = input_data[[1]], y = input_data[[2]])
+tree2 = build_tree(data = data,depth = 3,iter = 100)
+print(tree2,"converge")
+
+input_data = output3
+data = list(dist_scenario = input_data[[1]], y = input_data[[2]])
+tree3 = build_tree(data = data,depth = 3,iter = 100)
+print(tree3,"converge")
 
 # Function: tree_eval
 #' @details this function does train test split on the input data and provide prediction accuracy on the test set using Sparse Proximity Tree
@@ -329,14 +385,13 @@ plot(tree)
 #' @param train_size: proportion of samples used for training the sparse proximity tree
 
 tree_eval = function(input_data,train_size = 0.7){
-  input_data = output1
   N = dim(input_data[[1]])[2]
   p = dim(input_data[[1]])[1]
   train_ind = sort(sample(1:N,size = floor(train_size*N),replace = F))
   test_ind = sort(setdiff(1:N,train_ind))
   
   data = list(dist_scenario = input_data[[1]], y = input_data[[2]])
-  tree = build_tree(data = data,depth = 3,train_ind = train_ind)
+  tree = build_tree(data = data,depth = 4,train_ind = train_ind)
   
   # test it!
   D = input_data[[3]]
@@ -347,7 +402,6 @@ tree_eval = function(input_data,train_size = 0.7){
 }
 
 
-alldata = list(output1,output2,output3,output4,output4_sd)
-acc = lapply(alldata,tree_eval)
+
 
 
